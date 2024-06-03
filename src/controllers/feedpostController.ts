@@ -2,33 +2,36 @@
 import {Request, Response} from 'express';
 import { Feedpost } from '../models/feedpost';
 import { AppDataSource } from '../config/data';
+import { Body, Delete, Get, JsonController, Param, Post, Put, Req, Res } from 'routing-controllers';
 
-
-export const getAllFeedPosts = async (req: Request, res: Response) => {
+@JsonController('/feed')
+export class FeedController{
+@Get('/')
+ async getAllFeedPosts (@Req() req: Request, @Res() res: Response) {
     try {
         const feeds = await AppDataSource.manager.findAndCount(Feedpost);
-        res.status(200).json({
-            status: 'success',
-            data: {
-                feeds
-            }
-        });
+         return feeds;
     } catch (error: any) {
         res.status(400).json({ error: error.message });
     }
 }
-
-export const createFeedPost = async (req: Request, res: Response) => {
-    const { content, tags, media } = req.body;
+   @Post('/')
+   async createFeedPost (@Body() body: any, req: Request, res: Response) {
+    const { content, tags, media } = body;
     try{
-        const addFeed = await AppDataSource.manager.create(Feedpost, { content, tags, media})
-        await AppDataSource.manager.save(addFeed);
-        res.status(200).json(addFeed);
-    }catch(error: any){
-        res.status(400).json({error: error.message})
+        const addFeed = new Feedpost();
+        addFeed.content = content;
+        addFeed.tags = tags;
+        addFeed.media = media
+        const feed = await AppDataSource.manager.save(addFeed);
+        console.log('addFeed', feed); 
+        return feed
+       }catch(error: any){
+        res.status(400).json({ error: error.message });
     }
 }
-export const updateFeedPost = async(req: Request, res: Response) => {
+   @Put('/:id')
+   async updateFeedPost (req: Request, res: Response) {
     console.log('params', req.params);
     
     const {id}= req.params
@@ -40,17 +43,21 @@ export const updateFeedPost = async(req: Request, res: Response) => {
     }
 
 }
-
-export const deleteFeedPost = async (req: Request, res: Response) => {
-    const { id } = req.params;
+   @Delete('/:id')
+   async deleteFeedPost (req: Request, res: Response, @Param("id") id: number) {
     try {
-        const deleteFeed = await AppDataSource.manager.delete(Feedpost, {id: id});
-        
-        if (!deleteFeed) {
-            return res.status(404).json({ error: 'Feed not found' });
-        }   
-        res.status(200).json({ message: 'Feed deleted successfully' });
+        const deteltedDepartment = await AppDataSource.manager.delete(
+            Feedpost,
+          {
+            id: id,
+          }
+        );
+        return res.status(200).json({
+          status: "Successful",
+          message: "Department deleted successfully",
+        });
     } catch (error: any) {
         res.status(400).json({ error: error.message });
     }
 };
+}
